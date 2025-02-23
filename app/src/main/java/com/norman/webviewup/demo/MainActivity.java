@@ -126,7 +126,12 @@ public class MainActivity extends Activity implements UpgradeCallback {
                         "org.bromite.webview",
                         "108.0.5359.156",
                         "",
-                        "安装包")
+                        "安装包"),
+                new UpgradeInfo(
+                        "com.android.webview",
+                        "109.5.5414.123",
+                        "webview-x86.apk",
+                        "内置")
         ));
 
     }

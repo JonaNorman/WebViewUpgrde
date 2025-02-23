@@ -1,8 +1,10 @@
 package com.norman.webviewup.lib;
 
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.IBinder;
 import android.os.IInterface;
@@ -21,6 +23,8 @@ import com.norman.webviewup.lib.util.FileUtils;
 
 import java.io.File;
 
+import static com.norman.webviewup.lib.hook.PackageManagerServiceHook.SANDBOXED_SERVICES_NAME;
+
 
 public class WebViewReplace {
 
@@ -31,6 +35,7 @@ public class WebViewReplace {
     public synchronized static void replace(Context context, String apkPath,String libsPath) throws WebViewReplaceException {
         PackageManagerServiceHook managerHook = null;
         WebViewUpdateServiceHook updateServiceHook = null;
+        Log.i("WebViewReplace", "replace: apkPath = " + apkPath + " libsPath = " + libsPath);
         try {
             if (context == null) {
                 throw new WebViewReplaceException("context is null");
@@ -69,6 +74,10 @@ public class WebViewReplace {
             if(file.exists()){
                 file.setReadOnly();
             }
+
+            // 测试检查
+            checkServiceExists(context, packageInfo.packageName, SANDBOXED_SERVICES_NAME);
+
             checkWebView(context);
             REPLACE_WEB_VIEW_PACKAGE_INFO = loadCurrentWebViewPackageInfo();
         } catch (Throwable throwable) {
@@ -146,6 +155,17 @@ public class WebViewReplace {
         }
     }
 
+    private static void checkServiceExists(Context context, String packageName, String serviceClassName) {
+        PackageManager packageManager = context.getPackageManager();
+        // Check that the service exists.
+        try {
+            // PackageManager#getServiceInfo() throws an exception if the service does not exist.
+            packageManager.getServiceInfo(new ComponentName(packageName, serviceClassName), 0);
+        } catch (PackageManager.NameNotFoundException e) {
+            throw new RuntimeException("Illegal meta data value: the child service doesn't exist");
+        }
+    }
+
     public synchronized static String getSystemWebViewPackageName() {
         if (SYSTEM_WEB_VIEW_PACKAGE_INFO == null) {
             SYSTEM_WEB_VIEW_PACKAGE_INFO = loadCurrentWebViewPackageInfo();
@@ -175,6 +195,7 @@ public class WebViewReplace {
         if (providerInstance != null) {
             throw new WebViewReplaceException("WebView only can replace before System WebView init");
         }
+        Log.i("WebViewReplace", "checkWebView: Upgrade WebView start.");
         new WebView(context);
     }
 

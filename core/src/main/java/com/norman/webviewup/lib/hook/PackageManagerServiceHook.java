@@ -1,16 +1,19 @@
 package com.norman.webviewup.lib.hook;
 
+import android.annotation.SuppressLint;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.content.pm.ServiceInfo;
 import android.os.Build;
 import android.os.IBinder;
 import android.os.IInterface;
 import android.os.RemoteException;
 import android.text.TextUtils;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 
@@ -58,7 +61,35 @@ public class PackageManagerServiceHook extends BinderHook {
         this.libsPath = libsPath;
     }
 
+    /**
+     * <a href="https://chromium.googlesource.com/chromium/src/+/6e5f4b264b8d00b7f625227cb67fcb7bc476c29e/base/android/java/src/org/chromium/base/process_launcher/ChildConnectionAllocator.java#116">服务检查源码</a>
+     * <a href="https://chromium.googlesource.com/chromium/src/+/refs/heads/main/content/public/android/java/src/org/chromium/content/browser/ChildProcessCreationParamsImpl.java#21">相关服务包名定义</a>
+     */
+    private static final String TAG = "PackageManagerServiceHook";
+    public static final String SANDBOXED_SERVICES_NAME = "org.chromium.content.app.SandboxedProcessService0";
+
     private final PackageManagerProxy proxy = new PackageManagerProxy() {
+
+        @SuppressLint("LongLogTag")
+        @Override
+        protected ServiceInfo getServiceInfo(ComponentName componentName, long flags, int userId) {
+            Log.i(TAG, "【getServiceInfo】");
+            if (!TextUtils.equals(webViewPackageName, componentName.getPackageName())) {
+                return (ServiceInfo) invoke();
+            }
+            Log.i(TAG, "getServiceInfo: " + componentName.getClassName());
+            if (!SANDBOXED_SERVICES_NAME.equals(componentName.getClassName())) {
+                return (ServiceInfo) invoke();
+            }
+            // Skip the sandboxed service check, 返回任意已存在的ServiceInfo跳过检查
+            PackageInfo packageInfo = getPackageInfo(componentName.getPackageName(), PackageManager.GET_SERVICES);
+            if (packageInfo != null && packageInfo.services != null) {
+                ServiceInfo serviceInfo = packageInfo.services[0];
+                Log.i(TAG, "Skip the sandboxed service check, fake: " + serviceInfo.name);
+                return serviceInfo;
+            }
+            return (ServiceInfo) invoke();
+        }
 
         @Override
         protected PackageInfo getPackageInfo(String packageName, long flags, int userId) {

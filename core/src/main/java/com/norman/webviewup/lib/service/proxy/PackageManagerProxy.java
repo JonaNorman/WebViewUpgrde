@@ -2,6 +2,7 @@ package com.norman.webviewup.lib.service.proxy;
 
 import android.content.ComponentName;
 import android.content.pm.PackageInfo;
+import android.content.pm.ServiceInfo;
 
 import com.norman.webviewup.lib.reflect.RuntimeProxy;
 import com.norman.webviewup.lib.reflect.annotation.ClassName;
@@ -15,6 +16,8 @@ public abstract class PackageManagerProxy extends RuntimeProxy {
         super();
     }
 
+    @Method("getServiceInfo")
+    protected abstract ServiceInfo getServiceInfo(ComponentName componentName, long flags, int userId);
 
     @Method("getPackageInfo")
     protected abstract PackageInfo getPackageInfo(String packageName, long flags, int userId);
