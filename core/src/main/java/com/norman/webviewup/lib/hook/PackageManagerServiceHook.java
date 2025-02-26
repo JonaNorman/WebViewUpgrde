@@ -73,20 +73,19 @@ public class PackageManagerServiceHook extends BinderHook {
         @SuppressLint("LongLogTag")
         @Override
         protected ServiceInfo getServiceInfo(ComponentName componentName, long flags, int userId) {
-            Log.i(TAG, "【getServiceInfo】");
             if (!TextUtils.equals(webViewPackageName, componentName.getPackageName())) {
                 return (ServiceInfo) invoke();
             }
             Log.i(TAG, "getServiceInfo: " + componentName.getClassName());
-            if (!SANDBOXED_SERVICES_NAME.equals(componentName.getClassName())) {
-                return (ServiceInfo) invoke();
-            }
-            // Skip the sandboxed service check, 返回任意已存在的ServiceInfo跳过检查
+            // Skip service check, 返回已存在的ServiceInfo跳过检查
             PackageInfo packageInfo = getPackageInfo(componentName.getPackageName(), PackageManager.GET_SERVICES);
             if (packageInfo != null && packageInfo.services != null) {
-                ServiceInfo serviceInfo = packageInfo.services[0];
-                Log.i(TAG, "Skip the sandboxed service check, fake: " + serviceInfo.name);
-                return serviceInfo;
+                for (ServiceInfo serviceInfo : packageInfo.services) {
+                    if (serviceInfo.name.equals(componentName.getClassName())) {
+                        Log.i(TAG, "Skip service check, fake: " + serviceInfo.name);
+                        return serviceInfo;
+                    }
+                }
             }
             return (ServiceInfo) invoke();
         }

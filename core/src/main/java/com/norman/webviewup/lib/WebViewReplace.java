@@ -32,7 +32,7 @@ public class WebViewReplace {
 
     private static PackageInfo REPLACE_WEB_VIEW_PACKAGE_INFO;
 
-    public synchronized static void replace(Context context, String apkPath,String libsPath) throws WebViewReplaceException {
+    public synchronized static void replace(Context context, String apkPath, String libsPath) throws WebViewReplaceException {
         PackageManagerServiceHook managerHook = null;
         WebViewUpdateServiceHook updateServiceHook = null;
         Log.i("WebViewReplace", "replace: apkPath = " + apkPath + " libsPath = " + libsPath);
@@ -48,7 +48,7 @@ public class WebViewReplace {
                 throw new WebViewReplaceException("replace webView only in main thread");
             }
             PackageInfo packageInfo = context.getPackageManager()
-                    .getPackageArchiveInfo(apkPath, 0);
+                    .getPackageArchiveInfo(apkPath, PackageManager.GET_META_DATA);
 
             if (packageInfo == null) {
                 throw new WebViewReplaceException(apkPath + " is not apk");
@@ -56,6 +56,10 @@ public class WebViewReplace {
 
             int sdkVersion = Build.VERSION.SDK_INT;
             ApplicationInfo applicationInfo = packageInfo.applicationInfo;
+
+            if (applicationInfo != null && !hasWebViewLibrary(applicationInfo)) {
+                throw new WebViewReplaceException("The selected package name (" + packageInfo.packageName + ") is an invalid WebView provider");
+            }
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                 if (sdkVersion < applicationInfo.minSdkVersion) {
@@ -121,6 +125,10 @@ public class WebViewReplace {
 
             if (Looper.myLooper() != Looper.getMainLooper()) {
                 throw new WebViewReplaceException("replace webView only in main thread");
+            }
+
+            if (packageInfo.applicationInfo != null && !hasWebViewLibrary(packageInfo.applicationInfo)) {
+                throw new WebViewReplaceException("The selected package name (" + packageInfo.packageName + ") is an invalid WebView provider");
             }
 
             updateServiceHook = new WebViewUpdateServiceHook(context, packageInfo.packageName);
@@ -220,5 +228,10 @@ public class WebViewReplace {
         return null;
     }
 
-
+    private static boolean hasWebViewLibrary(ApplicationInfo applicationInfo) {
+        if (applicationInfo.metaData != null) {
+            return applicationInfo.metaData.getString("com.android.webview.WebViewLibrary") != null;
+        }
+        return false;
+    }
 }

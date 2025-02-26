@@ -6,7 +6,6 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
@@ -14,7 +13,6 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
-import android.webkit.WebView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -30,7 +28,6 @@ import com.norman.webviewup.lib.source.UpgradePackageSource;
 import com.norman.webviewup.lib.source.UpgradeSource;
 import com.norman.webviewup.lib.source.download.UpgradeDownloadSource;
 import com.norman.webviewup.lib.util.ProcessUtils;
-import com.norman.webviewup.lib.util.VersionUtils;
 
 import java.io.File;
 import java.util.Arrays;
@@ -95,13 +92,13 @@ public class MainActivity extends Activity implements UpgradeCallback {
                         "com.huawei.webview",
                         "14.0.0.331",
                         "https://mirror.ghproxy.com/https://raw.githubusercontent.com/JonaNorman/ShareFile/main/com.huawei.webview_14.0.0.331_arm64-v8a_armeabi-v7a.zip",
-                        "网络"),
-                //https://mirrors.aliyun.com/android.googlesource.com/external/chromium-webview/prebuilt/arm64/
-                new UpgradeInfo(
-                        "com.android.webview",
-                        "109.0.5414.123",
-                        "",
-                        "安装包")
+                        "网络")
+                // https://mirrors.aliyun.com/android.googlesource.com/external/chromium-webview/prebuilt/arm64/
+//                new UpgradeInfo(
+//                        "com.android.webview",
+//                        "109.0.5414.123",
+//                        "",
+//                        "安装包")
         ));
 
         UPGRADE_PACKAGE_MAP.put("x86", Arrays.asList(
@@ -113,6 +110,11 @@ public class MainActivity extends Activity implements UpgradeCallback {
                 new UpgradeInfo("com.google.android.webview",
                         "131.0.6778.105",
                         "com.google.android.webview_131.0.6778.105-677810506_minAPI26_maxAPI28(x86)(nodpi)_apkmirror.com.apk",
+                        "内置"),
+                new UpgradeInfo(
+                        "com.android.webview",
+                        "109.5.5414.123",
+                        "x86_64/com.android.webview.apk",
                         "内置")
         ));
         UPGRADE_PACKAGE_MAP.put("x86_64", Arrays.asList(
@@ -127,10 +129,11 @@ public class MainActivity extends Activity implements UpgradeCallback {
                         "108.0.5359.156",
                         "",
                         "安装包"),
+                // https://mirrors.aliyun.com/android.googlesource.com/external/chromium-webview/prebuilt/x86_64/
                 new UpgradeInfo(
                         "com.android.webview",
                         "109.5.5414.123",
-                        "webview-x86.apk",
+                        "x86_64/com.android.webview.apk",
                         "内置")
         ));
 
@@ -230,8 +233,8 @@ public class MainActivity extends Activity implements UpgradeCallback {
                     Toast.makeText(getApplicationContext(), "webView is already upgrade success,not support dynamic switch", Toast.LENGTH_LONG).show();
                 } else {
                     UpgradeInfo upgradeInfo = upgradeInfoList.get(which);
-                    String  systemWebViewPackageName = WebViewUpgrade.getSystemWebViewPackageName();
-//                    if (systemWebViewPackageName != null &&systemWebViewPackageName.equals(upgradeInfo.packageName)
+                    String systemWebViewPackageName = WebViewUpgrade.getSystemWebViewPackageName();
+//                    if (systemWebViewPackageName != null && systemWebViewPackageName.equals(upgradeInfo.packageName)
 //                            && VersionUtils.compareVersion( WebViewUpgrade.getSystemWebViewPackageVersion(),upgradeInfo.versionName) >= 0) {
 //                        Toast.makeText(getApplicationContext(), "system webView is larger than the one to be upgraded, so there is no need to upgrade", Toast.LENGTH_LONG).show();
 //                        return;
@@ -402,7 +405,6 @@ public class MainActivity extends Activity implements UpgradeCallback {
         String title;
         String url;
         String packageName;
-
         String versionName;
         String extraInfo;
     }
