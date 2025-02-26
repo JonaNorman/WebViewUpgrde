@@ -1,13 +1,18 @@
 package com.norman.webviewup.demo;
 
 import android.app.Activity;
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.ServiceConnection;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
-import android.webkit.WebView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -23,13 +28,14 @@ import com.norman.webviewup.lib.source.UpgradePackageSource;
 import com.norman.webviewup.lib.source.UpgradeSource;
 import com.norman.webviewup.lib.source.download.UpgradeDownloadSource;
 import com.norman.webviewup.lib.util.ProcessUtils;
-import com.norman.webviewup.lib.util.VersionUtils;
 
 import java.io.File;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import cn.hle.skipselfstartmanager.util.MobileInfoUtils;
 
 
 public class MainActivity extends Activity implements UpgradeCallback {
@@ -74,8 +80,6 @@ public class MainActivity extends Activity implements UpgradeCallback {
                         "122.0.6261.43",
                         "",
                         "安装包")
-
-
         ));
 
         UPGRADE_PACKAGE_MAP.put("arm64", Arrays.asList(
@@ -89,6 +93,12 @@ public class MainActivity extends Activity implements UpgradeCallback {
                         "14.0.0.331",
                         "https://mirror.ghproxy.com/https://raw.githubusercontent.com/JonaNorman/ShareFile/main/com.huawei.webview_14.0.0.331_arm64-v8a_armeabi-v7a.zip",
                         "网络")
+                // https://mirrors.aliyun.com/android.googlesource.com/external/chromium-webview/prebuilt/arm64/
+//                new UpgradeInfo(
+//                        "com.android.webview",
+//                        "109.0.5414.123",
+//                        "",
+//                        "安装包")
         ));
 
         UPGRADE_PACKAGE_MAP.put("x86", Arrays.asList(
@@ -100,6 +110,11 @@ public class MainActivity extends Activity implements UpgradeCallback {
                 new UpgradeInfo("com.google.android.webview",
                         "131.0.6778.105",
                         "com.google.android.webview_131.0.6778.105-677810506_minAPI26_maxAPI28(x86)(nodpi)_apkmirror.com.apk",
+                        "内置"),
+                new UpgradeInfo(
+                        "com.android.webview",
+                        "109.5.5414.123",
+                        "x86_64/com.android.webview.apk",
                         "内置")
         ));
         UPGRADE_PACKAGE_MAP.put("x86_64", Arrays.asList(
@@ -107,7 +122,19 @@ public class MainActivity extends Activity implements UpgradeCallback {
                         "com.google.android.webview",
                         "131.0.6778.135",
                         "https://www.ghproxy.cn/https://github.com/VoryWork/AndroidWebviewNew/releases/download/131.0.6778.135/x64.apk",
-                        "网络")
+                        "网络"),
+                // https://github.com/bromite/bromite/releases/download/108.0.5359.156/x64_SystemWebView.apk
+                new UpgradeInfo(
+                        "org.bromite.webview",
+                        "108.0.5359.156",
+                        "",
+                        "安装包"),
+                // https://mirrors.aliyun.com/android.googlesource.com/external/chromium-webview/prebuilt/x86_64/
+                new UpgradeInfo(
+                        "com.android.webview",
+                        "109.5.5414.123",
+                        "x86_64/com.android.webview.apk",
+                        "内置")
         ));
 
     }
@@ -193,6 +220,9 @@ public class MainActivity extends Activity implements UpgradeCallback {
         for (int i = 0; i < items.length; i++) {
             items[i] = upgradeInfoList.get(i).title;
         }
+
+        Context context = this;
+
         builder.setItems(items, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
@@ -203,8 +233,8 @@ public class MainActivity extends Activity implements UpgradeCallback {
                     Toast.makeText(getApplicationContext(), "webView is already upgrade success,not support dynamic switch", Toast.LENGTH_LONG).show();
                 } else {
                     UpgradeInfo upgradeInfo = upgradeInfoList.get(which);
-                    String  systemWebViewPackageName = WebViewUpgrade.getSystemWebViewPackageName();
-//                    if (systemWebViewPackageName != null &&systemWebViewPackageName.equals(upgradeInfo.packageName)
+                    String systemWebViewPackageName = WebViewUpgrade.getSystemWebViewPackageName();
+//                    if (systemWebViewPackageName != null && systemWebViewPackageName.equals(upgradeInfo.packageName)
 //                            && VersionUtils.compareVersion( WebViewUpgrade.getSystemWebViewPackageVersion(),upgradeInfo.versionName) >= 0) {
 //                        Toast.makeText(getApplicationContext(), "system webView is larger than the one to be upgraded, so there is no need to upgrade", Toast.LENGTH_LONG).show();
 //                        return;
@@ -214,6 +244,55 @@ public class MainActivity extends Activity implements UpgradeCallback {
                     if (upgradeSource == null) {
                         return;
                     }
+                    if (Build.VERSION.SDK_INT > 34 && upgradeInfo.extraInfo.equals("安装包")) {
+                        String serviceName =  "org.chromium.content.app.SandboxedProcessService0";
+                        ServiceConnection mConnection = new ServiceConnection() {
+                            @Override
+                            public void onServiceConnected(ComponentName className, IBinder service) {
+                                Log.e("MainActivity", serviceName + "服务连接成功");
+                            }
+
+                            @Override
+                            public void onServiceDisconnected(ComponentName arg0) {
+                                Log.e("MainActivity", serviceName + "服务意外断开");
+                            }
+                        };
+
+                        try {
+                            Intent intent = new Intent();
+                            intent.setClassName(upgradeInfo.packageName, serviceName);
+                            boolean isServiceBound = bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
+
+                            if (isServiceBound) {
+                                // 理论上没有这个情况，因为不可能成功的
+                                Log.e("MainActivity", serviceName + "服务已启动并且绑定成功");
+                            }
+                            else {
+                                Log.e("MainActivity", serviceName + "是服务未启动或不存在");
+                                android.app.AlertDialog.Builder dlg = new android.app.AlertDialog.Builder(context);
+                                dlg.setMessage("请授予Webview(" + upgradeInfo.packageName + ")自启动权限后重新进入APP，否则本App将无法正常使用Webview组件！");
+                                dlg.setTitle("Alert");
+                                dlg.setCancelable(false);
+                                dlg.setPositiveButton("立即设置",
+                                        (dialog1, which1) -> navigateToAppSettingsAndExit());
+                                dlg.setNegativeButton("暂时不设置",
+                                        (dialog3, which2) -> dialog3.dismiss());
+                                dlg.setOnKeyListener((dialog2, keyCode, event) -> {
+                                    if (keyCode == KeyEvent.KEYCODE_BACK) {
+                                        return false;
+                                    }
+                                    else {
+                                        navigateToAppSettingsAndExit();
+                                        return true;
+                                    }
+                                });
+                                dlg.show();
+                            }
+                        } catch (java.lang.SecurityException e) {
+                            // 有SecurityException就证明webview在后台启动了
+                            Log.e("MainActivity", serviceName + "服务已启动");
+                        }
+                    }
                     WebViewUpgrade.upgrade(upgradeSource);
                     updateUpgradeWebViewPackageInfo();
                     updateUpgradeWebViewStatus();
@@ -222,6 +301,12 @@ public class MainActivity extends Activity implements UpgradeCallback {
         });
         AlertDialog dialog = builder.create();
         dialog.show();
+    }
+
+    private void navigateToAppSettingsAndExit() {
+        MobileInfoUtils.jumpStartInterface(this);
+        finish();
+        android.os.Process.killProcess(android.os.Process.myPid());
     }
 
     @Nullable
@@ -320,7 +405,6 @@ public class MainActivity extends Activity implements UpgradeCallback {
         String title;
         String url;
         String packageName;
-
         String versionName;
         String extraInfo;
     }

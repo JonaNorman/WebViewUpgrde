@@ -26,6 +26,7 @@ public class UpgradePackageSource extends UpgradeSource {
     protected void onPrepare(Object params) {
         try {
             int flags = params instanceof Integer ? (int) params : 0;
+            flags |= PackageManager.GET_META_DATA;
             packageInfo = getContext().getPackageManager().getPackageInfo(packageName, flags);
             if (packageInfo == null) {
                 throw new PackageManager.NameNotFoundException("Package " + packageName + " doesn't exist");
